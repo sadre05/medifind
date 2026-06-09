@@ -20,13 +20,17 @@ jobs:
         working-directory: frontend/user-app
         env:
           VITE_API_URL: https://medifind-backend-253003075255.asia-south1.run.app
-        run: npm install && npm run build
+        run: |
+          npm install
+          npx vite build
 
       - name: Build Shop App
         working-directory: frontend/shop-app
         env:
           VITE_API_URL: https://medifind-backend-253003075255.asia-south1.run.app
-        run: npm install && npm run build
+        run: |
+          npm install
+          npx vite build
 
       - name: Combine builds
         run: |
