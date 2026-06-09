@@ -1,17 +1,17 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import './index.css'
+import React from "react"
+import ReactDOM from "react-dom/client"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
+import Dashboard from "./pages/Dashboard"
+import "./index.css"
 
 function PrivateRoute({ children }) {
-  return localStorage.getItem('mf_token') ? children : <Navigate to="/login" replace />
+  return localStorage.getItem("mf_token") ? children : <Navigate to="/login" replace />
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <BrowserRouter basename="/medifind/user">
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
