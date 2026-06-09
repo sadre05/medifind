@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: medifind_postgres
+    environment:
+      POSTGRES_USER: medifind
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: medifind_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medifind"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: medifind_redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medifind_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://medifind:password@postgres:5432/medifind_db
+      SYNC_DATABASE_URL: postgresql://medifind:password@postgres:5432/medifind_db
+      SECRET_KEY: changeme-in-production-min-32-chars-xxxx
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      STORAGE_BACKEND: local
+      LOCAL_UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: python run.py
+
+volumes:
+  pg_data:
+  uploads:
