@@ -22,7 +22,7 @@ jobs:
           VITE_API_URL: https://medifind-backend-253003075255.asia-south1.run.app
         run: |
           npm install
-          npx vite build
+          npx --yes vite build
 
       - name: Build Shop App
         working-directory: frontend/shop-app
@@ -30,7 +30,7 @@ jobs:
           VITE_API_URL: https://medifind-backend-253003075255.asia-south1.run.app
         run: |
           npm install
-          npx vite build
+          npx --yes vite build
 
       - name: Combine builds
         run: |
