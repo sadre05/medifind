@@ -1,7 +1,7 @@
 import React from "react"
 export default function NotificationCard({ notif, isNew }) {
   const isConfirmed = notif.type === "SHOP_CONFIRMED"
-  const availableMeds = notif.available_medicines || []
+  const availableMeds = (notif.available_medicines || []).filter(m => m.toLowerCase() !== 'medicine list')
   return (
     <div style={{
       background: isConfirmed ? "rgba(74,222,128,0.05)" : "rgba(255,255,255,0.03)",
@@ -93,3 +93,4 @@ export default function NotificationCard({ notif, isNew }) {
     </div>
   )
 }
+
