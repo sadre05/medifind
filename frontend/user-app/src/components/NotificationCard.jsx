@@ -2,7 +2,10 @@ import React from "react"
 export default function NotificationCard({ notif, isNew }) {
   const isConfirmed = notif.type === "SHOP_CONFIRMED"
   const availableMeds = (notif.available_medicines || []).filter(m => m.toLowerCase() !== "medicine list")
-  const mapsUrl = notif.shop?.address
+  
+  const mapsUrl = notif.shop?.lat && notif.shop?.lng
+    ? "https://www.google.com/maps?q=" + notif.shop.lat + "," + notif.shop.lng
+    : notif.shop?.address
     ? "https://www.google.com/maps/search/" + encodeURIComponent(notif.shop.address)
     : null
 
@@ -39,6 +42,7 @@ export default function NotificationCard({ notif, isNew }) {
           <div style={{ fontSize: 13, color: isConfirmed ? "var(--green)" : "var(--yellow)", marginBottom: 8 }}>
             {isConfirmed ? "Medicine confirmed in stock" : "Checking availability..."}
           </div>
+
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             {notif.shop?.distance_km != null && (
               <span style={{
@@ -61,16 +65,22 @@ export default function NotificationCard({ notif, isNew }) {
                 {notif.shop.phone}
               </a>
             )}
+            {notif.shop?.address && (
+              <span style={{ fontSize: 11, color: "var(--text3)" }}>
+                {notif.shop.address}
+              </span>
+            )}
             {mapsUrl && (
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
-                fontSize: 11, padding: "3px 10px", borderRadius: 20,
-                background: "rgba(59,130,246,0.1)", color: "#60a5fa",
-                border: "1px solid rgba(59,130,246,0.25)",
+                fontSize: 11, padding: "4px 12px", borderRadius: 20,
+                background: "rgba(59,130,246,0.15)", color: "#60a5fa",
+                border: "1px solid rgba(59,130,246,0.35)",
                 textDecoration: "none",
-                display: "inline-flex", alignItems: "center", gap: 4,
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontWeight: 500,
               }}>
-                <i className="ti ti-map-2" style={{ fontSize: 11 }} />
-                {notif.shop.address}
+                <i className="ti ti-map-2" style={{ fontSize: 13 }} />
+                Get Directions
               </a>
             )}
           </div>
