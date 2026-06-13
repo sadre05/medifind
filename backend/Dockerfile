@@ -1,8 +1,8 @@
 FROM python:3.12-slim
 
-# Install system deps for Tesseract OCR + psycopg2
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
+    tesseract-ocr-eng \
     libpq-dev \
     gcc \
     && rm -rf /var/lib/apt/lists/*
@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/uploads
+RUN mkdir -p /tmp/uploads
 
-EXPOSE 8000
+EXPOSE 8080
 
 CMD ["python", "run.py"]
