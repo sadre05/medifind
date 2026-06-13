@@ -175,7 +175,7 @@ async def respond_to_request(
     if notif.response != "pending":
         raise HTTPException(status_code=400, detail="Already responded")
 
-    await handle_shop_response(db, notif, data.response)
+    await handle_shop_response(db, notif, data.response, data.available_medicines)
     return {"status": "ok", "response": data.response}
 
 
@@ -210,3 +210,4 @@ async def get_shop_history(
                 "responded_at": n.responded_at.isoformat() if n.responded_at else None,
             })
     return out
+

@@ -3,19 +3,13 @@ from app.models.request_notification import RequestNotification
 from app.models.medicine_request import MedicineRequest
 from app.services.websocket_manager import manager
 
-
 async def fanout_to_shops(
     db: AsyncSession,
     request: MedicineRequest,
-    nearby_shops: list,  # list of (Shop, distance_km)
+    nearby_shops: list,
 ):
-    """
-    Create RequestNotification rows for each nearby shop
-    and push a WebSocket event to connected shop dashboards.
-    """
     count = 0
     for shop, dist in nearby_shops:
-        # Create notification row (unique per request+shop)
         notif = RequestNotification(
             request_id=request.id,
             shop_id=shop.id,
@@ -23,8 +17,6 @@ async def fanout_to_shops(
         )
         db.add(notif)
         count += 1
-
-        # Push real-time to connected shop
         await manager.notify_shop(str(shop.id), {
             "type": "NEW_REQUEST",
             "request_id": str(request.id),
@@ -36,22 +28,16 @@ async def fanout_to_shops(
                 "lng": float(request.search_lng),
             },
         })
-
-    # Update count on request
     request.shops_notified = count
     await db.flush()
     return count
 
-
 async def handle_shop_response(
     db: AsyncSession,
     notification: RequestNotification,
-    response: str,  # "confirmed" or "declined"
+    response: str,
+    available_medicines: list = None,
 ):
-    """
-    Update notification row and if confirmed,
-    notify the user and mark request as fulfilled.
-    """
     from datetime import datetime, timezone
     from sqlalchemy import select
     from app.models.medicine_request import MedicineRequest
@@ -62,12 +48,10 @@ async def handle_shop_response(
     await db.flush()
 
     if response == "confirmed":
-        # Load request + shop
         req_result = await db.execute(
             select(MedicineRequest).where(MedicineRequest.id == notification.request_id)
         )
         req = req_result.scalar_one_or_none()
-
         shop_result = await db.execute(
             select(Shop).where(Shop.id == notification.shop_id)
         )
@@ -78,11 +62,11 @@ async def handle_shop_response(
             req.fulfilled_by = shop.id
             await db.flush()
 
-            # Push to user
             await manager.notify_user(str(req.user_id), {
                 "type": "SHOP_CONFIRMED",
                 "request_id": str(req.id),
                 "request_code": req.request_code,
+                "available_medicines": available_medicines or req.medicine_names,
                 "shop": {
                     "id": str(shop.id),
                     "name": shop.shop_name,
