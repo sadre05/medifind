@@ -4,7 +4,8 @@ import { requestAPI } from "../services/api"
 export default function RequestCard({ req, onRespond }) {
   const [loading, setLoading] = useState(null)
   const [done, setDone] = useState(null)
-  const meds = Array.isArray(req.medicine_names) ? req.medicine_names : []
+  const allMeds = Array.isArray(req.medicine_names) ? req.medicine_names : []
+const meds = allMeds.filter(m => m.toLowerCase() !== 'medicine list')
   const [selected, setSelected] = useState(new Set(meds))
 
   function toggleMed(med) {
@@ -149,3 +150,4 @@ export default function RequestCard({ req, onRespond }) {
     </div>
   )
 }
+
