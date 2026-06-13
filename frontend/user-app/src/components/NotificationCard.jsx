@@ -2,7 +2,7 @@ import React from "react"
 export default function NotificationCard({ notif, isNew }) {
   const isConfirmed = notif.type === "SHOP_CONFIRMED"
   const availableMeds = (notif.available_medicines || []).filter(m => m.toLowerCase() !== "medicine list")
-  
+
   const mapsUrl = notif.shop?.lat && notif.shop?.lng
     ? "https://www.google.com/maps?q=" + notif.shop.lat + "," + notif.shop.lng
     : notif.shop?.address
@@ -66,22 +66,18 @@ export default function NotificationCard({ notif, isNew }) {
               </a>
             )}
             {notif.shop?.address && (
-              <span style={{ fontSize: 11, color: "var(--text3)" }}>
+              <span style={{ fontSize: 11, color: "var(--text3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <i className="ti ti-building" style={{ fontSize: 10 }} />
                 {notif.shop.address}
+                {mapsUrl && (
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" title="Open in Google Maps" style={{
+                    color: "#60a5fa", display: "inline-flex", alignItems: "center",
+                    textDecoration: "none", marginLeft: 2,
+                  }}>
+                    <i className="ti ti-map-2" style={{ fontSize: 13 }} />
+                  </a>
+                )}
               </span>
-            )}
-            {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
-                fontSize: 11, padding: "4px 12px", borderRadius: 20,
-                background: "rgba(59,130,246,0.15)", color: "#60a5fa",
-                border: "1px solid rgba(59,130,246,0.35)",
-                textDecoration: "none",
-                display: "inline-flex", alignItems: "center", gap: 5,
-                fontWeight: 500,
-              }}>
-                <i className="ti ti-map-2" style={{ fontSize: 13 }} />
-                Get Directions
-              </a>
             )}
           </div>
         </div>
