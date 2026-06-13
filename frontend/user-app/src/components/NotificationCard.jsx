@@ -1,7 +1,14 @@
 import React from "react"
 export default function NotificationCard({ notif, isNew }) {
   const isConfirmed = notif.type === "SHOP_CONFIRMED"
-  const availableMeds = (notif.available_medicines || []).filter(m => m.toLowerCase() !== 'medicine list')
+  const availableMeds = (notif.available_medicines || []).filter(m => m.toLowerCase() !== "medicine list")
+  
+  const mapsUrl = notif.shop?.address
+    ? `https://www.google.com/maps/search/${encodeURIComponent(notif.shop.address)}`
+    : notif.shop?.lat && notif.shop?.lng
+    ? `https://www.google.com/maps?q=${notif.shop.lat},${notif.shop.lng}`
+    : null
+
   return (
     <div style={{
       background: isConfirmed ? "rgba(74,222,128,0.05)" : "rgba(255,255,255,0.03)",
@@ -36,7 +43,7 @@ export default function NotificationCard({ notif, isNew }) {
           <div style={{ fontSize: 13, color: isConfirmed ? "var(--green)" : "var(--yellow)", marginBottom: 8 }}>
             {isConfirmed ? "Medicine confirmed in stock" : "Checking availability..."}
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             {notif.shop?.distance_km != null && (
               <span style={{
                 fontSize: 11, padding: "3px 10px", borderRadius: 20,
@@ -48,19 +55,37 @@ export default function NotificationCard({ notif, isNew }) {
               </span>
             )}
             {notif.shop?.phone && (
-              <span style={{
+              <a href={`tel:${notif.shop.phone}`} style={{
                 fontSize: 11, padding: "3px 10px", borderRadius: 20,
                 background: "var(--green-dim)", color: "var(--green)",
-                border: "1px solid rgba(74,222,128,0.2)"
+                border: "1px solid rgba(74,222,128,0.2)",
+                textDecoration: "none",
               }}>
                 <i className="ti ti-phone" style={{ fontSize: 10, marginRight: 3 }} />
                 {notif.shop.phone}
-              </span>
+              </a>
             )}
             {notif.shop?.address && (
               <span style={{ fontSize: 11, color: "var(--text3)" }}>
                 {notif.shop.address}
               </span>
+            )}
+            {mapsUrl && (
+              
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: 11, padding: "3px 10px", borderRadius: 20,
+                  background: "rgba(59,130,246,0.1)", color: "#60a5fa",
+                  border: "1px solid rgba(59,130,246,0.25)",
+                  textDecoration: "none",
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                }}
+              >
+                <i className="ti ti-map" style={{ fontSize: 10 }} />
+                Open in Maps
+              </a>
             )}
           </div>
         </div>
@@ -93,4 +118,3 @@ export default function NotificationCard({ notif, isNew }) {
     </div>
   )
 }
-

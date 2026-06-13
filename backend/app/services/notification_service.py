@@ -72,6 +72,9 @@ async def handle_shop_response(
                     "name": shop.shop_name,
                     "phone": shop.phone,
                     "address": shop.address,
+                    "lat": float(shop.latitude) if shop.latitude else None,
+                    "lng": float(shop.longitude) if shop.longitude else None,
                     "distance_km": float(notification.distance_km or 0),
                 },
             })
+
