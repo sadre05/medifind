@@ -58,6 +58,9 @@ export default function Dashboard() {
 
   const handleWsMessage = useCallback((msg) => {
     if (msg.type === 'SHOP_CONFIRMED') {
+      clearInterval(intervalRef.current)
+      clearTimeout(timerRef.current)
+      setTimer(null)
       const notif = { ...msg, id: Date.now() }
       setNotifications(prev => {
         const updated = [notif, ...prev]
@@ -360,3 +363,5 @@ export default function Dashboard() {
     </div>
   )
 }
+
+
