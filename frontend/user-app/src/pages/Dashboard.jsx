@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useGPS } from '../hooks/useGPS'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -7,6 +7,7 @@ import MedicineSelector from '../components/MedicineSelector'
 import NotificationCard from '../components/NotificationCard'
 
 const QUICK = ['Paracetamol', 'Ibuprofen', 'Amoxicillin', 'Metformin', 'Cetirizine', 'Vitamin D3']
+const WAIT_SECONDS = 60
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
@@ -18,26 +19,56 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState([])
   const [newNotifIds, setNewNotifIds] = useState(new Set())
   const [prescLoading, setPrescLoading] = useState(false)
-  const [prescMedicines, setPrescMedicines] = useState(null) // OCR results
+  const [prescMedicines, setPrescMedicines] = useState(null)
   const [showSelector, setShowSelector] = useState(false)
   const [error, setError] = useState('')
+  const [timer, setTimer] = useState(null)
   const fileRef = useRef()
+  const timerRef = useRef(null)
+  const intervalRef = useRef(null)
 
-  // WebSocket â€” receives shop confirmations
+  function startTimer() {
+    setTimer(WAIT_SECONDS)
+    clearInterval(intervalRef.current)
+    clearTimeout(timerRef.current)
+
+    intervalRef.current = setInterval(() => {
+      setTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    timerRef.current = setTimeout(() => {
+      clearInterval(intervalRef.current)
+      setTimer(0)
+      setActiveRequest(r => r ? { ...r, status: 'closed' } : r)
+    }, WAIT_SECONDS * 1000)
+  }
+
+  useEffect(() => {
+    return () => {
+      clearInterval(intervalRef.current)
+      clearTimeout(timerRef.current)
+    }
+  }, [])
+
   const handleWsMessage = useCallback((msg) => {
     if (msg.type === 'SHOP_CONFIRMED') {
       const notif = { ...msg, id: Date.now() }
-      setNotifications(prev => [notif, ...prev])
+      setNotifications(prev => {
+        const updated = [notif, ...prev]
+        return updated.sort((a, b) => (a.shop?.distance_km || 0) - (b.shop?.distance_km || 0))
+      })
       setNewNotifIds(prev => new Set([...prev, notif.id]))
       setTimeout(() => setNewNotifIds(prev => {
         const next = new Set(prev); next.delete(notif.id); return next
       }), 5000)
-
-      if (activeRequest) {
-        setActiveRequest(r => r ? { ...r, status: 'fulfilled' } : r)
-      }
     }
-  }, [activeRequest])
+  }, [])
 
   useWebSocket(handleWsMessage)
 
@@ -47,6 +78,9 @@ export default function Dashboard() {
     setSearching(true)
     setShowSelector(false)
     setPrescMedicines(null)
+    clearInterval(intervalRef.current)
+    clearTimeout(timerRef.current)
+    setTimer(null)
     try {
       const { data } = await requestAPI.create({
         medicine_names: medicines,
@@ -55,6 +89,7 @@ export default function Dashboard() {
       })
       setActiveRequest(data)
       setNotifications([])
+      startTimer()
     } catch (err) {
       setError(err.response?.data?.detail || 'Search failed')
     } finally {
@@ -111,7 +146,6 @@ export default function Dashboard() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* GPS badge */}
           <button
             onClick={requestLocation}
             disabled={gpsLoading}
@@ -121,7 +155,6 @@ export default function Dashboard() {
               border: `1px solid ${gpsActive ? 'rgba(74,222,128,0.3)' : 'rgba(251,191,36,0.3)'}`,
               borderRadius: 20, padding: '6px 14px', cursor: 'pointer',
               color: gpsActive ? 'var(--green)' : 'var(--yellow)', fontSize: 12,
-              animation: gpsActive ? 'pulse 2.5s infinite' : 'none',
             }}
           >
             <span style={{
@@ -143,7 +176,6 @@ export default function Dashboard() {
       </header>
 
       <main style={{ maxWidth: 640, margin: '0 auto', padding: '28px 20px' }}>
-        {/* GPS error */}
         {gpsError && (
           <div style={{
             background: 'var(--yellow-dim)', border: '1px solid rgba(251,191,36,0.25)',
@@ -156,7 +188,6 @@ export default function Dashboard() {
 
         {error && <div className="error-msg" style={{ marginBottom: 16 }}>{error}</div>}
 
-        {/* Search section */}
         {!showSelector && (
           <section style={{ marginBottom: 28, animation: 'fadeIn 0.4s ease' }}>
             <div style={{ fontSize: 12, fontFamily: 'Syne', color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
@@ -189,11 +220,10 @@ export default function Dashboard() {
                   whiteSpace: 'nowrap', flexShrink: 0,
                 }}
               >
-                {searching ? <span style={{ animation: 'pulse 1s infinite' }}>Searching...</span> : 'Search â†’'}
+                {searching ? <span style={{ animation: 'pulse 1s infinite' }}>Searching...</span> : 'Search ?'}
               </button>
             </form>
 
-            {/* Quick chips */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
               {QUICK.map(q => (
                 <button key={q} onClick={() => { setSearch(q); setTimeout(() => startSearch([q]), 50) }} style={{
@@ -209,14 +239,12 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--text3)', fontSize: 12, marginBottom: 16 }}>
               <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               or upload prescription
               <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
 
-            {/* Prescription upload */}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={prescLoading}
@@ -237,7 +265,6 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Medicine Selector (after OCR) */}
         {showSelector && prescMedicines && (
           <div style={{ marginBottom: 28 }}>
             <MedicineSelector
@@ -248,44 +275,60 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Active request status */}
+        {/* Active request + Timer */}
         {activeRequest && (
           <div style={{
             background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
             borderRadius: 14, padding: '14px 18px', marginBottom: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             animation: 'fadeIn 0.3s ease',
           }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Request ID</div>
-              <div style={{ fontFamily: 'Syne', fontSize: 14, color: 'var(--blue)', fontWeight: 600 }}>
-                {activeRequest.request_code}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>
-                {activeRequest.medicine_names?.join(', ')}
-              </div>
-            </div>
-            <div>
-              {activeRequest.status === 'pending' && searching === false && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--yellow)', fontSize: 13 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--yellow)', animation: 'ping 1s infinite' }} />
-                  Notifying {activeRequest.shops_notified} shops...
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Request ID</div>
+                <div style={{ fontFamily: 'Syne', fontSize: 14, color: 'var(--blue)', fontWeight: 600 }}>
+                  {activeRequest.request_code}
                 </div>
-              )}
-              {activeRequest.status === 'fulfilled' && (
-                <div style={{ color: 'var(--green)', fontSize: 13 }}>
-                  <i className="ti ti-circle-check" style={{ marginRight: 4 }} />Fulfilled
+                <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>
+                  {activeRequest.medicine_names?.join(', ')}
                 </div>
-              )}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                {activeRequest.status === 'closed' || timer === 0 ? (
+                  <div style={{ color: 'var(--text3)', fontSize: 13 }}>
+                    <i className="ti ti-clock-off" style={{ marginRight: 4 }} />Request Closed
+                  </div>
+                ) : timer > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--yellow)', fontSize: 13 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--yellow)', animation: 'ping 1s infinite' }} />
+                      Waiting for shops...
+                    </div>
+                    <div style={{
+                      fontSize: 22, fontFamily: 'Syne', fontWeight: 700,
+                      color: timer <= 10 ? 'var(--red)' : 'var(--blue)',
+                    }}>
+                      {timer}s
+                    </div>
+                    <div style={{ width: 120, height: 4, background: 'var(--border)', borderRadius: 4 }}>
+                      <div style={{
+                        height: '100%', borderRadius: 4,
+                        background: timer <= 10 ? 'var(--red)' : 'linear-gradient(90deg,#0EA5E9,#6366F1)',
+                        width: `${(timer / WAIT_SECONDS) * 100}%`,
+                        transition: 'width 1s linear',
+                      }} />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Notifications */}
+        {/* Notifications — distance ascending */}
         {notifications.length > 0 && (
           <section style={{ animation: 'fadeIn 0.4s ease' }}>
             <div style={{ fontSize: 12, fontFamily: 'Syne', color: 'var(--text2)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14 }}>
-              Shop Responses
+              Shop Responses ({notifications.length} found — nearest first)
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {notifications.map(n => (
@@ -295,7 +338,6 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Empty state */}
         {!activeRequest && notifications.length === 0 && !showSelector && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', animation: 'fadeIn 0.5s ease' }}>
             <i className="ti ti-building-store" style={{ fontSize: 48, display: 'block', marginBottom: 16, opacity: 0.3 }} />

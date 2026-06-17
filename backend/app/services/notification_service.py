@@ -57,11 +57,7 @@ async def handle_shop_response(
         )
         shop = shop_result.scalar_one_or_none()
 
-        if req and shop and req.status == "pending":
-            req.status = "fulfilled"
-            req.fulfilled_by = shop.id
-            await db.flush()
-
+        if req and shop:
             await manager.notify_user(str(req.user_id), {
                 "type": "SHOP_CONFIRMED",
                 "request_id": str(req.id),
@@ -77,4 +73,3 @@ async def handle_shop_response(
                     "distance_km": float(notification.distance_km or 0),
                 },
             })
-
