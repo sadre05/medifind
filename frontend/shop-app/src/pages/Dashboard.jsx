@@ -38,13 +38,13 @@ export default function Dashboard() {
       const { data } = await requestAPI.getHistory()
       setHistory(data)
     } catch {}
-  }
+  }	
 
   useEffect(() => {
     loadProfile()
     loadRequests()
     loadHistory()
-    const interval = setInterval(loadRequests, 15000) // poll every 15s
+   return () => {}
     return () => clearInterval(interval)
   }, [])
 
@@ -289,3 +289,6 @@ export default function Dashboard() {
     </div>
   )
 }
+
+
+
