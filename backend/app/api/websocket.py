@@ -6,14 +6,15 @@ router = APIRouter(tags=["WebSocket"])
 
 @router.websocket("/ws/user")
 async def user_websocket(ws: WebSocket, token: str = Query(...)):
-    await ws.accept()
     payload = decode_token(token)
     if not payload:
+        await ws.accept()
         await ws.close(code=4001)
         return
     user_id = payload.get("sub")
     role = payload.get("role")
     if not user_id or role != "user":
+        await ws.accept()
         await ws.close(code=4001)
         return
     await manager.connect_user(user_id, ws)
@@ -25,14 +26,15 @@ async def user_websocket(ws: WebSocket, token: str = Query(...)):
 
 @router.websocket("/ws/shop")
 async def shop_websocket(ws: WebSocket, token: str = Query(...)):
-    await ws.accept()
     payload = decode_token(token)
     if not payload:
+        await ws.accept()
         await ws.close(code=4001)
         return
     shop_id = payload.get("sub")
     role = payload.get("role")
     if not shop_id or role != "shop":
+        await ws.accept()
         await ws.close(code=4001)
         return
     await manager.connect_shop(shop_id, ws)
